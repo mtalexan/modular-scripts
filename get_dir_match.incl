@@ -1,0 +1,131 @@
+# Intended for direct sourcing in another script
+#
+# Expects:
+#   $1
+#       specifies the search type, requests a full listing, or is the search term with default search type.
+#       grep search takes $2 as a posix-extended regex and can be shortcutted with "-"
+#       glob search takes $2 as a standard glob pattern and can be shortcutted with "."
+#       ".." is a shortcut for glob with a pattern of *
+#       Anything not matching one of the previous is assumed to be default search type
+#       Default search type is the equivalent of grep "$1"
+#   $2
+#       only examined if $1 specifies the search type, contains the regex or glob pattern
+#   $BASEDIR
+#       The directory to search for matches in
+#
+# Returns:
+#  ERROR_RET
+#       set to 1 if we don't have sufficient arguments, or arguments are malformed.
+#       set to 2 if we had proper arguments and actually searched for things,  but simply didn't
+#        match anything matching.
+#       set empty if no errors were encountered during processing.
+#  PERFECT_MATCH
+#       set to the single matched string if only one was matched, otherwise empty
+#  MATCH_DIRS
+#       array of all matches, sorted lexigraphically
+#
+# Side-Effects:
+#  Shifts arguments to drop those used by this script.
+#
+# NOTES
+#  Bash completely doesn't allow quotes to be stored directly in variables.  Since our method below
+#   relies on storing quoted strings, including the quote characters, in variables we then want to
+#   interpret literally when passed to a sub-shell command, we cannot store the arguments directly
+#   in a single variable.  There's a weird way to circumvent this limitation however, and that's by
+#   storing each space separated argument as a value in an array.  When the entire array is specified
+#   as a double quote wrapped variable, it will correctly place the literals from each value in the
+#   array (preserving quotes) at that location (much like the "$@" is interpreted differently than
+#   $@ alone).
+#
+
+# Search term2 is only used if search term 1 returned no results
+my_SEARCH_TERM1=()
+my_SEARCH_TERM2=()
+
+#clear the error return, we'll set it if we encounter errors
+ERROR_RET=
+
+if [ -z "$1" ] || [ -z "$BASEDIR" ] ; then
+    # Mandatory arguments not set
+    ERROR_RET=1
+else
+    # set the arguments to the find command and shift the input parameters
+    case "$1" in
+        "grep" | "-" )
+            #perform regex search with $2 as the regex
+            if [ -z "$2" ] ; then
+                ERROR_RET=1
+            else
+                my_SEARCH_TERM1=(-regextype)
+                my_SEARCH_TERM1+=(posix-extended)
+                my_SEARCH_TERM1+=(-regex)
+                my_SEARCH_TERM1+=("$2")
+                shift
+                shift
+            fi
+            ;;
+        "glob" | "." )
+            #perform glob search with $2
+            if [ -z "$2" ] ; then
+                ERROR_RET=1
+            else
+                my_SEARCH_TERM1=(-name)
+                my_SEARCH_TERM1+=("$2")
+                shift
+                shift
+            fi
+            ;;
+        ".." )
+            #list all available matches (only 1 arg given)
+            my_SEARCH_TERM1=() #not empty string, but empty list
+            shift
+            ;;
+        *)
+            #default: anything containing the search term (only 1 arg given)
+            # try matching the term exactly first, then try making it part of
+            # an arbitrary glob.  That way PERFECT_MATCH can get set if we
+            # perfectly match a folder who's name is also part of other
+            # folder names.
+            my_SEARCH_TERM1=(-name)
+            my_SEARCH_TERM1+=("$1")
+
+            my_SEARCH_TERM2=(-name)
+            my_SEARCH_TERM2+=("*$1*")
+            shift
+            ;;
+    esac
+fi
+
+my_MATCHED=
+
+if [ -z "$ERROR_RET" ] ; then
+
+    pushd $BASEDIR > /dev/null
+
+    my_MATCHED=$(find -maxdepth 1 -type d "${my_SEARCH_TERM1[@]}" | grep -vE '^[.]$' | sed -e 's@./@@')
+
+    # If we didn't find anything with the first search term, try again with the second term instead
+    if [ -z "$my_MATCHED" ] && [ ${#my_SEARCH_TERM2[@]} -ne 0 ] ; then
+        my_MATCHED=$(find -maxdepth 1 -type d "${my_SEARCH_TERM2[@]}" | grep -vE '^[.]$' | sed -e 's@./@@')
+    fi
+
+    popd > /dev/null
+
+    # if it's still empty, but we had a search term specified, return an error
+    if [ ${#my_SEARCH_TERM1[@]} -ne 0 ] && [ -z "${my_MATCHED}" ] ; then
+        ERROR_RET=2
+    fi
+fi
+
+MATCH_DIRS=( $my_MATCHED )
+
+#sort the resulting array
+OLD_IFS=$IFS ; IFS=$'\n' #set newline separators temporarily
+MATCH_DIRS=($(sort <<<"${MATCH_DIRS[*]}")) #feed the whole array to sort
+IFS=$OLD_IFS
+
+if [ ${#MATCH_DIRS[@]} -eq 1 ] ; then
+    PERFECT_MATCH=$my_MATCHED
+fi
+
+

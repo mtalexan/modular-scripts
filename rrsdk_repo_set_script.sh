@@ -4,7 +4,7 @@ BASEDIR=${HOME}/rrsdk_code_repos
 ERROR_RET=
 PERFECT_MATCH=
 MATCH_DIRS=()
-SCRIPT_DIR=${HOME}/local/repos
+SCRIPT_DIR=${LOCAL_REPOS_DIR}
 SCRIPT_NAME=set_rrsdk.sh
 
 if [ -u $1 ] ; then
@@ -27,7 +27,7 @@ elif [ $1 == "help" ] ; then
     exit 1 #in case we're called directly as a script
 fi
 
-. ~/local/repos/get_dir_match.incl
+source ${LOCAL_REPOS_DIR}/get_dir_match.incl
 
 if [ ! -z "$ERROR_RET" ] ; then
     if [ $ERROR_RET -eq 2 ] ; then
@@ -57,7 +57,7 @@ echo "Setting to ${BASEDIR}/${PERFECT_MATCH}/rrsdk/ksi"
 
 echo "export DEVDIR=${BASEDIR}/${PERFECT_MATCH}/rrsdk/ksi" > $SCRIPT_DIR/$SCRIPT_NAME
 chmod +x $SCRIPT_DIR/$SCRIPT_NAME
-. $SCRIPT_DIR/$SCRIPT_NAME
+source $SCRIPT_DIR/$SCRIPT_NAME
 
 # space separated list of sub-directories in $DEVDIR that need to have all symbolic links directly contained
 # in them removed

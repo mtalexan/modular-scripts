@@ -20,7 +20,7 @@ function modular() {
                 ;;
             *)
                 # Let the match parsing handle it
-                . ~/local/repos/get_dir_match.incl
+                source ${LOCAL_REPOS_DIR}/get_dir_match.incl
                 ;;
         esac
     done

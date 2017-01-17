@@ -85,8 +85,17 @@ if [ -h $DEVDIR/ksipn.mk ] ; then
 fi
 
 # Update the link in the MSDK_ROOT_PATH to point to the new modular
-if [ -n "$MSDK_ROOT_PATH" ] && [ -h $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src ] ; then
-    ln -sf $MODULAR_REPO_PATH $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+if [ -n "$MSDK_ROOT_PATH" ] && [ -h $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src ]; then
+    if [[ "$(readlink -e $MODULAR_REPO_PATH)" == *"msdk_code_repos"* ]] ; then
+        #MODULAR_REPO_PATH is going to something in MSDK, set the link to
+        #the default
+        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        ln -sf $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.sdk_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+    else
+        #update the MSDK link
+        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        ln -s $MODULAR_REPO_PATH $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+    fi
 fi
 
 # if we're currently in the base dir or a sub-directory, move to the new modular directory

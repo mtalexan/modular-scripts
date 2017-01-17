@@ -83,14 +83,14 @@ done
 
 # Change the links to point to the current modular directory file if it's actually a link (but only the new one)
 if [ -h $MSDK_ROOT_PATH/modular ] && [ -n "$(readlink -e $MODULAR_REPO_PATH)" ] ; then
-    #this should always be true, we're going to update the src link instead
-    ln -sf $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src $MSDK_ROOT_PATH/modular
     if [[ "$(readlink -e $MODULAR_REPO_PATH)" == *"$BASEDIR"* ]] ; then
         #MODULAR_REPO_PATH was going to an internal for some other MSDK so don't use it
-        ln -sf $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.src_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        ln -s $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.src_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
     else
         #MODULAR_REPO_PATH is probably pointint to a link, so update with the real underlying file
-        ln -sf $(readlink -e $MODULAR_REPO_PATH) $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        ln -s $(readlink -e $MODULAR_REPO_PATH) $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
     fi
 fi
 

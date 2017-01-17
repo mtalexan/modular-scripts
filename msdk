@@ -1,10 +1,10 @@
 #because we want this to change the directory of the invoker, we need to source
 #this in the .bashrc and declare it as a shell function
-function modular() {
+function msdk() {
 
     # setup our variables that might be set by arg parsing
     local SUBDIR=
-    local BASEDIR=${HOME}/modular_code_repos
+    local BASEDIR=${HOME}/msdk_code_repos
     local ERROR_RET=
     local PERFECT_MATCH=
     local MATCH_DIRS=()
@@ -42,11 +42,11 @@ function modular() {
     # Construct the full path to the specific directory if we can
     if [ ${#MATCH_DIRS[@]} -lt 1 ] ; then
     #found no matches, or had no arguments about matches
-        if [ -z "$MODULAR_REPO_PATH" ] ; then
-            echo 1>&2 'MODULAR_REPO_PATH not set, cannot default to $MODULAR_REPO_PATH'
+        if [ -z "$MSDK_ROOT_PATH" ] ; then
+            echo 1>&2 'MSDK_ROOT_PATH not set, cannot default to $MSDK_ROOT_PATH'
             return 1
         else
-            FULL_DIR=${MODULAR_REPO_PATH}/${SUBDIR}
+            FULL_DIR=${MSDK_ROOT_PATH}/${SUBDIR}
         fi
     elif [ ! -z "$PERFECT_MATCH" ] ; then
     #only one match for our search terms, or had a perfect match on a non-glob search term

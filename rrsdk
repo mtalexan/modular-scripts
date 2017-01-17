@@ -50,7 +50,7 @@ function rrsdk() {
         fi
     elif [ ! -z "$PERFECT_MATCH" ] ; then
     #only one match for our search terms, or had a perfect match on a non-glob search term
-        FULL_DIR=${BASEDIR}/${PERFECT_MATCH}/rrsdk/ksi/${SUBDIR}
+        FULL_DIR=${BASEDIR}/${PERFECT_MATCH}/${SUBDIR}
     fi
 
     #have a full path to a specific directory?

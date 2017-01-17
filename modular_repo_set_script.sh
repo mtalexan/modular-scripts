@@ -9,7 +9,7 @@ SCRIPT_NAME=set_modular.sh
 
 if [ -u $1 ] ; then
     #strip the MODULAR_REPO_PATH down to the directory under $BASEDIR only
-    CURRENT_DIR=$(echo $MODULAR_REPO_PATH | sed "s@$BASEDIR/\(.*\)/modular*@\1@")
+    CURRENT_DIR=$(echo $MODULAR_REPO_PATH | sed "s@$BASEDIR/\(.*\)@\1@")
     echo "Current: $CURRENT_DIR"
     echo "Available: "
     echo "----------"
@@ -48,14 +48,15 @@ if [ -z "$PERFECT_MATCH" ] ; then
     # print each array entry on its own line
     printf '%s\n' "${MATCH_DIRS[@]}" 1>&2
     return 1
+    exit 1 #in case we're called directly as a script
 fi
 
-echo "Setting to ${BASEDIR}/${PERFECT_MATCH}/modular"
+echo "Setting to ${BASEDIR}/${PERFECT_MATCH}"
 
 # Put the command to correctly setup the selected modular repo path into a separate script
 # so it can be run from the .bashrc at session start and give a consistent session setup
 
-echo "export MODULAR_REPO_PATH=${BASEDIR}/${PERFECT_MATCH}/modular" > $SCRIPT_DIR/$SCRIPT_NAME
+echo "export MODULAR_REPO_PATH=${BASEDIR}/${PERFECT_MATCH}" > $SCRIPT_DIR/$SCRIPT_NAME
 chmod +x $SCRIPT_DIR/$SCRIPT_NAME
 source $SCRIPT_DIR/$SCRIPT_NAME
 
@@ -83,9 +84,9 @@ if [ -h $DEVDIR/ksipn.mk ] ; then
     ln -s $MODULAR_REPO_PATH/ksipn.mk $DEVDIR/ksipn.mk
 fi
 
-# Remove the shortcut to the modular directory from the home directory and replace it
-if [ -h ~/modular ] ; then
-    ln -sf $MODULAR_REPO_PATH ~/modular
+# Update the link in the MSDK_ROOT_PATH to point to the new modular
+if [ -n "$MSDK_ROOT_PATH" ] && [ -h $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src ] ; then
+    ln -sf $MODULAR_REPO_PATH $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
 fi
 
 # if we're currently in the base dir or a sub-directory, move to the new modular directory

@@ -6,10 +6,11 @@ PERFECT_MATCH=
 MATCH_DIRS=()
 SCRIPT_DIR=${LOCAL_REPOS_DIR}
 SCRIPT_NAME=set_rrsdk.sh
+MSDK_SCRIPT_NAME=set_msdk.sh
 
 if [ -u $1 ] ; then
     #strip the DEVDIR down to the directory under $BASEDIR only
-    CURRENT_DIR=$(echo $DEVDIR | sed "s@$BASEDIR/\(.*\)/rrsdk*@\1@")
+    CURRENT_DIR=$(echo $DEVDIR | sed "s@$BASEDIR/\(.*\)@\1@")
     echo "Current: $CURRENT_DIR"
     echo "Available: "
     echo "----------"
@@ -34,10 +35,12 @@ if [ ! -z "$ERROR_RET" ] ; then
         #provided search terms, but nothing matched
         echo 1>&2 "No matches found!!"
         return 2
+        exit 2 #in case we're called directly as a script
     elif [ $ERROR_RET -eq 1 ] ; then
         #badly formatted arguments
         echo 1>&2 "Invalid arguments!"
         return 1
+        exit 1 #in case we're called directly as a script
     fi
 fi
 
@@ -48,14 +51,15 @@ if [ -z "$PERFECT_MATCH" ] ; then
     # print each array entry on its own line
     printf '%s\n' "${MATCH_DIRS[@]}" 1>&2
     return 1
+    exit 1 #in case we're called directly as a script
 fi
 
-echo "Setting to ${BASEDIR}/${PERFECT_MATCH}/rrsdk/ksi"
+echo "Setting to ${BASEDIR}/${PERFECT_MATCH}"
 
 # Put the command to correctly setup the selected rrsdk repo path into a separate script
 # so it can be run from the .bashrc at session start and give a consistent session setup
 
-echo "export DEVDIR=${BASEDIR}/${PERFECT_MATCH}/rrsdk/ksi" > $SCRIPT_DIR/$SCRIPT_NAME
+echo "export DEVDIR=${BASEDIR}/${PERFECT_MATCH}" > $SCRIPT_DIR/$SCRIPT_NAME
 chmod +x $SCRIPT_DIR/$SCRIPT_NAME
 source $SCRIPT_DIR/$SCRIPT_NAME
 
@@ -77,15 +81,18 @@ for dir in $DIRS_TO_CLEAN ; do
     fi
 done
 
+OLD_DIR=`pwd`
 # Reset the path that was originally updated for the old RRSDK environment path
 export PATH=$ORIG_PATH
 # Go to the new rrsdk and run a make env so the environment is correctly setup
 cd $DEVDIR
 if [ $? -ne 0 ] ; then
-    exit 1
+    return 1
+    exit 1 #in case we're called directly as a script
 fi
-
 `make env`
+
+cd $OLD_DIR
 
 # Change the link to point to the current modular directory file if it's actually a link (but only the new one)
 if [ -h $DEVDIR/ksipn.mk ] ; then
@@ -93,14 +100,10 @@ if [ -h $DEVDIR/ksipn.mk ] ; then
     ln -s $MODULAR_REPO_PATH/ksipn.mk $DEVDIR/ksipn.mk
 fi
 
+#make sure there isn't an MSDK script to confuse everything on the next environment load
+rm $SCRIPT_DIR/$MSDK_SCRIPT_NAME
 
-# remove the shortcut link from the home directory and recreate it with the new path
-if [ -h ~/rrsdk ] ; then
-    rm ~/rrsdk
-    ln -s ${DEVDIR} ~/rrsdk
-fi
-
-# if we're currently in the base dir or a sub-directory, move to the new modular directory
+# if we're currently in the base dir or a sub-directory, move to the new rrsdk directory
 # to avoid confusion with still being in the old one that's no longer setup
 if [[ "$(pwd)" == *"$BASEDIR"* ]]; then
     # move to the new directory instead of the old one

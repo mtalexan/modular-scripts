@@ -81,18 +81,19 @@ for dir in $DIRS_TO_CLEAN ; do
     fi
 done
 
-# Change the links to point to the current modular directory file if it's actually a link (but only the new one)
-if [ -h $MSDK_ROOT_PATH/modular ] && [ -n "$(readlink -e $MODULAR_REPO_PATH)" ] ; then
-    if [[ "$(readlink -e $MODULAR_REPO_PATH)" == *"$BASEDIR"* ]] ; then
-        #MODULAR_REPO_PATH was going to an internal for some other MSDK so don't use it
-        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-        ln -s $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.src_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-    else
-        #MODULAR_REPO_PATH is probably pointint to a link, so update with the real underlying file
-        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-        ln -s $(readlink -e $MODULAR_REPO_PATH) $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-    fi
-fi
+####### Don't update the links, we use the MSDK as self-contained sandboxes now
+## Change the links to point to the current modular directory file if it's actually a link (but only the new one)
+#if [ -h $MSDK_ROOT_PATH/modular ] && [ -n "$(readlink -e $MODULAR_REPO_PATH)" ] ; then
+#    if [[ "$(readlink -e $MODULAR_REPO_PATH)" == *"$BASEDIR"* ]] ; then
+#        #MODULAR_REPO_PATH was going to an internal for some other MSDK so don't use it
+#        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+#        ln -s $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.src_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+#    else
+#        #MODULAR_REPO_PATH is probably pointint to a link, so update with the real underlying file
+#        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+#        ln -s $(readlink -e $MODULAR_REPO_PATH) $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+#    fi
+#fi
 
 ########## Don't update the sdk link in the msdk, treat the msdk like it includes the sdk
 ##########

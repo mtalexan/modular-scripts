@@ -84,17 +84,17 @@ if [ -h $DEVDIR/ksipn.mk ] ; then
     ln -s $MODULAR_REPO_PATH/ksipn.mk $DEVDIR/ksipn.mk
 fi
 
-# Update the link in the MSDK_ROOT_PATH to point to the new modular if we're in the MSDK, otherwise leave it
-if [ -n "$MSDK_ROOT_PATH" ] && [ -h $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src ] && [[ "$(pwd)" == "$(readlink -e $MODULAR_REPO_PATH)"* ]] ; then
+# Update the link in the MSDK_ROOT_DIR to point to the new modular if we're in the MSDK, otherwise leave it
+if [ -n "$MSDK_ROOT_DIR" ] && [ -h $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src ] && [[ "$(pwd)" == "$(readlink -e $MODULAR_REPO_PATH)"* ]] ; then
     if [[ "$(readlink -e $MODULAR_REPO_PATH)" == *"msdk_code_repos"* ]] ; then
         #MODULAR_REPO_PATH is going to something in MSDK, set the link to
         #the default
-        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-        ln -sf $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.sdk_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        rm $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
+        ln -sf $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/.sdk_repo $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
     else
         #update the MSDK link
-        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-        ln -s $MODULAR_REPO_PATH $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+        rm $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
+        ln -s $MODULAR_REPO_PATH $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
     fi
 fi
 

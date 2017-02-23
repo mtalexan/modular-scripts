@@ -42,11 +42,11 @@ function msdk() {
     # Construct the full path to the specific directory if we can
     if [ ${#MATCH_DIRS[@]} -lt 1 ] ; then
     #found no matches, or had no arguments about matches
-        if [ -z "$MSDK_ROOT_PATH" ] ; then
-            echo 1>&2 'MSDK_ROOT_PATH not set, cannot default to $MSDK_ROOT_PATH'
+        if [ -z "$MSDK_ROOT_DIR" ] ; then
+            echo 1>&2 'MSDK_ROOT_DIR not set, cannot default to $MSDK_ROOT_DIR'
             return 1
         else
-            FULL_DIR=${MSDK_ROOT_PATH}/${SUBDIR}
+            FULL_DIR=${MSDK_ROOT_DIR}/${SUBDIR}
         fi
     elif [ ! -z "$PERFECT_MATCH" ] ; then
     #only one match for our search terms, or had a perfect match on a non-glob search term

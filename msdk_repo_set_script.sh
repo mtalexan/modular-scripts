@@ -10,7 +10,7 @@ DEVDIR_SCRIPT_NAME=set_rrsdk.sh
 
 if [ -u $1 ] ; then
     #strip the DEVDIR down to the directory under $BASEDIR only
-    CURRENT_DIR=$(echo $MSDK_ROOT_PATH | sed "s@$BASEDIR/\(.*\)@\1@")
+    CURRENT_DIR=$(echo $MSDK_ROOT_DIR | sed "s@$BASEDIR/\(.*\)@\1@")
     echo "Current: $CURRENT_DIR"
     echo "Available: "
     echo "----------"
@@ -59,18 +59,18 @@ echo "Setting to ${BASEDIR}/${PERFECT_MATCH}"
 # Put the command to correctly setup the selected rrsdk repo path into a separate script
 # so it can be run from the .bashrc at session start and give a consistent session setup
 
-echo "export MSDK_ROOT_PATH=${BASEDIR}/${PERFECT_MATCH}" > $SCRIPT_DIR/$SCRIPT_NAME
+echo "export MSDK_ROOT_DIR=${BASEDIR}/${PERFECT_MATCH}" > $SCRIPT_DIR/$SCRIPT_NAME
 chmod +x $SCRIPT_DIR/$SCRIPT_NAME
 source $SCRIPT_DIR/$SCRIPT_NAME
 
-# space separated list of sub-directories in $MSDK_ROOT_PATH that need to have all symbolic links
+# space separated list of sub-directories in $MSDK_ROOT_DIR that need to have all symbolic links
 #directly contained in them removed
 DIRS_TO_CLEAN=
 
 for dir in $DIRS_TO_CLEAN ; do
     # make sure the directory exists
-    if [ -e ${MSDK_ROOT_PATH}/${dir} ] ; then
-        LINKS_TO_CHANGE=$(find ${MSDK_ROOT_PATH}/${dir} -maxdepth 1 -type l)
+    if [ -e ${MSDK_ROOT_DIR}/${dir} ] ; then
+        LINKS_TO_CHANGE=$(find ${MSDK_ROOT_DIR}/${dir} -maxdepth 1 -type l)
         # turn it into a space separated list
         LINKS_TO_CHANGE=$( echo $LINKS_TO_CHANGE )
         # make sure there were actually results
@@ -83,36 +83,36 @@ done
 
 ####### Don't update the links, we use the MSDK as self-contained sandboxes now
 ## Change the links to point to the current modular directory file if it's actually a link (but only the new one)
-#if [ -h $MSDK_ROOT_PATH/modular ] && [ -n "$(readlink -e $MODULAR_REPO_PATH)" ] ; then
+#if [ -h $MSDK_ROOT_DIR/modular ] && [ -n "$(readlink -e $MODULAR_REPO_PATH)" ] ; then
 #    if [[ "$(readlink -e $MODULAR_REPO_PATH)" == *"$BASEDIR"* ]] ; then
 #        #MODULAR_REPO_PATH was going to an internal for some other MSDK so don't use it
-#        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-#        ln -s $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/.src_repo $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+#        rm $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
+#        ln -s $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/.src_repo $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
 #    else
 #        #MODULAR_REPO_PATH is probably pointint to a link, so update with the real underlying file
-#        rm $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
-#        ln -s $(readlink -e $MODULAR_REPO_PATH) $MSDK_ROOT_PATH/sdk-apps/ksi-dmapp/src
+#        rm $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
+#        ln -s $(readlink -e $MODULAR_REPO_PATH) $MSDK_ROOT_DIR/sdk-apps/ksi-dmapp/src
 #    fi
 #fi
 
 ########## Don't update the sdk link in the msdk, treat the msdk like it includes the sdk
 ##########
 ## Change the link to point to the current sdk directory file
-#if [ -h $MSDK_ROOT_PATH/sdk ] && [ -n "$(readlink -e $DEVDIR)" ] ; then
+#if [ -h $MSDK_ROOT_DIR/sdk ] && [ -n "$(readlink -e $DEVDIR)" ] ; then
 #    #don't let an MSDK point to something in rrsdk
 #    if [[ "$(readlink -e $DEVDIR)" == *"rrsdk"* ]] ; then
 #        #default to the .sdk_repo folder in the MSDK
-#        ln -sf $MSDK_ROOT_PATH/.sdk_repo $MSDK_ROOT_PATH/sdk
+#        ln -sf $MSDK_ROOT_DIR/.sdk_repo $MSDK_ROOT_DIR/sdk
 #    else
 #        #DEVDIR is probably set to the symlink we're updating, so get it to point to the
 #        #proper underlying file/folder
-#        ln -sf $(readlink -e $DEVDIR) $MSDK_ROOT_PATH/sdk
+#        ln -sf $(readlink -e $DEVDIR) $MSDK_ROOT_DIR/sdk
 #    fi
 #fi
 
 OLD_DIR=`pwd`
 # Go to the new msdk and run a make env so the environment is correctly setup
-cd $MSDK_ROOT_PATH
+cd $MSDK_ROOT_DIR
 if [ $? -ne 0 ] ; then
     return 1
     exit 1 #in case we're called directly as a script
@@ -129,5 +129,5 @@ chmod +x $SCRIPT_DIR/$DEVDIR_SCRIPT_NAME
 # to avoid confusion with still being in the old one that's no longer setup
 if [[ "$(pwd)" == *"$BASEDIR"* ]]; then
     # move to the new directory instead of the old one
-    cd $MSDK_ROOT_PATH
+    cd $MSDK_ROOT_DIR
 fi

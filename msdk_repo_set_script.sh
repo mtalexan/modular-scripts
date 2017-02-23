@@ -7,6 +7,7 @@ MATCH_DIRS=()
 SCRIPT_DIR=${LOCAL_REPOS_DIR}
 SCRIPT_NAME=set_msdk.sh
 DEVDIR_SCRIPT_NAME=set_rrsdk.sh
+MOD_SCRIPT_NAME=set_modular.sh
 
 if [ -u $1 ] ; then
     #strip the DEVDIR down to the directory under $BASEDIR only
@@ -118,6 +119,14 @@ if [ $? -ne 0 ] ; then
     exit 1 #in case we're called directly as a script
 fi
 `make env`
+
+# Put the command to correctly setup the selected modular repo path into a separate script
+# so it can be run from the .bashrc at session start and give a consistent session setup
+
+echo "export MODULAR_REPO_PATH=${MODULAR_REPO_PATH}" > $SCRIPT_DIR/$MOD_SCRIPT_NAME
+chmod +x $SCRIPT_DIR/$MOD_SCRIPT_NAME
+source $SCRIPT_DIR/$MOD_SCRIPT_NAME
+
 
 cd $OLD_DIR
 

@@ -118,21 +118,26 @@ if [ $? -ne 0 ] ; then
     return 1
     exit 1 #in case we're called directly as a script
 fi
-`make env`
+# don't do this anymore, it needs the specific MACH set to work properly now
+#`make env`
 
-# Put the command to correctly setup the selected modular repo path into a separate script
-# so it can be run from the .bashrc at session start and give a consistent session setup
+## Put the command to correctly setup the selected modular repo path into a separate script
+## so it can be run from the .bashrc at session start and give a consistent session setup
+#echo "export MODULAR_REPO_PATH=${MODULAR_REPO_PATH}" > $SCRIPT_DIR/$MOD_SCRIPT_NAME
+#chmod +x $SCRIPT_DIR/$MOD_SCRIPT_NAME
+#source $SCRIPT_DIR/$MOD_SCRIPT_NAME
 
-echo "export MODULAR_REPO_PATH=${MODULAR_REPO_PATH}" > $SCRIPT_DIR/$MOD_SCRIPT_NAME
-chmod +x $SCRIPT_DIR/$MOD_SCRIPT_NAME
-source $SCRIPT_DIR/$MOD_SCRIPT_NAME
-
+# Don't do the above anymore, but instead write empty to it to avoid problems
+echo "" > $SCRIPT_DIR/$MOD_SCRIPT_NAME
 
 cd $OLD_DIR
 
-#do this so DEVDIR gets reset based on our MSDK setting in the next environment load
-echo "export DEVDIR=${DEVDIR}" > $SCRIPT_DIR/$DEVDIR_SCRIPT_NAME
-chmod +x $SCRIPT_DIR/$DEVDIR_SCRIPT_NAME
+##do this so DEVDIR gets reset based on our MSDK setting in the next environment load
+#echo "export DEVDIR=${DEVDIR}" > $SCRIPT_DIR/$DEVDIR_SCRIPT_NAME
+#chmod +x $SCRIPT_DIR/$DEVDIR_SCRIPT_NAME
+
+# We shouldn't be using the above anymore, so write blank to this file to avoid problems
+echo "" > $SCRIPT_DIR/$DEVDIR_SCRIPT_NAME
 
 # if we're currently in the base dir or a sub-directory, move to the new msdk directory
 # to avoid confusion with still being in the old one that's no longer setup

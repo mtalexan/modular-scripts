@@ -10,7 +10,7 @@
 #       Default search type is the equivalent of grep "$1"
 #   $2
 #       only examined if $1 specifies the search type, contains the regex or glob pattern
-#   $BASEDIR
+#   $MSDK_BASEDIR
 #       The directory to search for matches in
 #
 # Returns:
@@ -45,7 +45,7 @@ my_SEARCH_TERM2=()
 #clear the error return, we'll set it if we encounter errors
 ERROR_RET=
 
-if [ -z "$1" ] || [ -z "$BASEDIR" ] ; then
+if [ -z "$1" ] || [ -z "$MSDK_BASEDIR" ] ; then
     # Mandatory arguments not set
     ERROR_RET=1
 else
@@ -100,7 +100,7 @@ my_MATCHED=
 
 if [ -z "$ERROR_RET" ] ; then
 
-    pushd $BASEDIR > /dev/null
+    pushd $MSDK_BASEDIR > /dev/null
 
     my_MATCHED=$(find -maxdepth 1 -type d "${my_SEARCH_TERM1[@]}" | grep -vE '^[.]$' | sed -e 's@./@@')
 

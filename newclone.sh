@@ -153,7 +153,7 @@ fi
 export INHERIT
 
 # Run git-externals with the INHERIT branch prefered for all sub-repos
-if ! INHERIT=${INHERIT} git externals
+if ! ( INHERIT=${INHERIT} git externals )
 then
     echo "ERROR: git-externals failed"
     exit 1

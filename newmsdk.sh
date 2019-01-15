@@ -97,7 +97,7 @@ do
     esac
 done
 
-if [ -z "${NAMES[@]}" ]
+if [ ${#NAMES[@]} -eq 0 ]
 then
     echo "ERROR: Required argument missing"
     print_usage
@@ -113,14 +113,32 @@ then
     exit 1
 fi
 
+CLONE_TO_CLEANUP_ON_FAILURE=
+cleanup_failed_parent_clone()
+{
+    if [ -n "${CLONE_TO_CLEANUP_ON_FAILURE}" ] && [ -d ${CLONE_TO_CLEANUP_ON_FAILURE} ]
+    then
+        echo "Cleaning up failed clone: ${CLONE_TO_CLEANUP_ON_FAILURE}  ..."
+        rm -rf ${CLONE_TO_CLEANUP_ON_FAILURE}
+    fi
+}
+
+trap EXIT "cleanup_failed_parent_clone"
+
 for N in ${NAMES[@]}
 do
     echo -e "${CMagentaForeground}${CBold}Creating new clone in ${MSDK_BASEDIR}/${N}${CNone}"
+
+    # Set this so any failure will clean up after it
+    CLONE_TO_CLEANUP_ON_FAILURE=${MSDK_BASEDIR}/${N}
 
     if ! newclone ${PASSTHRU_ARGS[@]} ${REPO_URL} ${N}
     then
         echo "ERROR: Could not create ${N}"
         exit 1
+    else
+        # we successfully cloned it, we don't need to do any further cleanup on it
+        CLONE_TO_CLEANUP_ON_FAILURE=
     fi
 done
 

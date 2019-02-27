@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MSDK_BASEDIR=${HOME}/msdk_code_repos
-REPO_URL=git@gol-gitlab.kstg.corp:VPD-SW/Dev/modularSDK.git
+REPO_URL=git@scm-02.karlstorz.com:VPD-SW/Dev/modularSDK.git
 
 CMagentaForeground="\\033[35m"
 CBold="\\033[1m"

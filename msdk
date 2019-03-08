@@ -282,13 +282,13 @@ complete -F _smsdk_completions lmsdk
 # wrapped shell script
 function rmmsdkz() {
     zfs_rmmsdk.sh $*
-    return $*
+    return $?
 }
 
 # wrapped shell script
 function rmmsdk_containers() {
     containers_rmmsdk.sh $*
-    return $*
+    return $?
 }
 
 # Used for completion of rmmsdk, rmmsdkz, rmmsdk_containers
@@ -452,7 +452,7 @@ function _rm_zfs_clone_completions() {
 
     #can't provide via array for some reason, so make it unique in a single variable
     local GIVEIT=$(echo "${COMPREPLYPOSSIBLE[@]}" | sort -u)
-    
+
     COMPREPLY+=($(compgen -W "${GIVEIT}" "${COMP_WORDS[${COMP_CWORD}]}"))
 }
 

@@ -212,4 +212,4 @@ if [ -z "${SNAPSHOT}" ] ; then # need to create the base dataset
 fi
 
 # now call to create a snapshot (possibly) and the cloned copy
-mk_zfs_clone ${SNAPSHOT} ${NAMES[@]}
+zfs_mk_clone ${SNAPSHOT} ${NAMES[@]}

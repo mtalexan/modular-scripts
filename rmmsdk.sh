@@ -71,7 +71,7 @@ do
     echo -e "${CMagentaForeground}${CBold}""Removing clone in ${MSDK_BASEDIR}/${N}""${CNone}"
 
     if [ -d $N ] ; then
-        rmmsdk_containers $N
+        containers_rmmsdk.sh ${N}
         sudo rm -rf ${MSDK_BASEDIR}/${N}
     else
         echo "ERROR: ${MSDK_BASEDIR}/${N} doesn't exist"

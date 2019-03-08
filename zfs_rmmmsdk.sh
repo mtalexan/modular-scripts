@@ -78,9 +78,9 @@ do
 
     if [ -d ${MSDK_BASEDIR}/${N} ] ; then
         # remove any containers it uses
-        rmmsdk_containers ${N}
+        containers_rmmsdk.sh ${N}
         # remove the ZFS clone and any unused base datasets it's derived from
-        rm_zfs_clone ${N}
+        zfs_rm_clone.sh ${N}
         # remove the left-over directory we mounted to
         sudo rm -rf ${MSDK_BASEDIR}/${N}
     else

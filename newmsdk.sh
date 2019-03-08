@@ -123,7 +123,7 @@ cleanup_failed_parent_clone()
     fi
 }
 
-trap EXIT "cleanup_failed_parent_clone"
+trap "cleanup_failed_parent_clone" EXIT 
 
 for N in ${NAMES[@]}
 do

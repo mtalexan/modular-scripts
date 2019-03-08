@@ -1,4 +1,12 @@
 MSDK_BASEDIR=${HOME}/msdk_code_repos
+TOP_ZPOOL=phyhomedir/home # this must already exist
+# The pool to create git clones in that we'll create ZFS clones of.
+# Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL
+BASE_ZPOOL=${TOP_ZPOOL}/msdk
+# The pool to create ZFS clones in
+# Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL or BASE_ZPOOL
+BASE_CLONE_ZPOOL=${BASE_ZPOOL}/clones
+
 
 #because we want this to change the directory of the invoker, we need to source
 #this in the .bashrc and declare it as a shell function
@@ -199,6 +207,14 @@ function smsdk() {
     cd ${MSDK_ROOT_DIR}
 }
 
+# completion utility function
+function _add_msdk_dirlist() {
+    local MSDK_DIRLIST=()
+    mapfile -t MSDK_DIRLIST < <(find ${MSDK_BASEDIR} -maxdepth 1 -mindepth 1 \( -type d -o -type l \) | sed -e "s@${MSDK_BASEDIR}/@@g")
+
+    echo "${MSDK_DIRLIST[@]}"
+}
+
 # shared by lmsdk and smsdk
 function _smsdk_completions() {
     #list of directories under ${MSDK_BASEDIR}, excluding hidden ones
@@ -209,8 +225,9 @@ function _smsdk_completions() {
             COMPREPLY+=(".") # glob search pattern on matches
         fi
 
-        local MSDK_DIRLIST=$(find ${MSDK_BASEDIR} -maxdepth 1 -mindepth 1 \( -type d -o -type l \) | sed -e "s@${MSDK_BASEDIR}/@@g")
-        COMPREPLY+=($(compgen -W "${MSDK_DIRLIST} grep glob" "${COMP_WORDS[${COMP_CWORD}]}"))
+        local COMPREPLYPOSSIBLE=()
+        COMPREPLYPOSSIBLE+=("$(_add_msdk_dirlist)")
+        COMPREPLY+=($(compgen -W "${COMPREPLYPOSSIBLE[@]} grep glob" "${COMP_WORDS[${COMP_CWORD}]}"))
     else
         # can't complete patterns, and don't have any other possible arguments
         COMPREPLY=()
@@ -260,3 +277,183 @@ complete -F _msdk_completions msdk
 complete -F _smsdk_completions smsdk
 complete -F _smsdk_completions lmsdk
 
+#function rmmsdk() -- defined as stand-alone script
+
+# wrapped shell script
+function rmmsdkz() {
+    zfs_rmmsdk.sh $*
+    return $*
+}
+
+# wrapped shell script
+function rmmsdk_containers() {
+    containers_rmmsdk.sh $*
+    return $*
+}
+
+# Used for completion of rmmsdk, rmmsdkz, rmmsdk_containers
+function _rmmsdk_completions() {
+    local COMPREPLYPOSSIBLE=()
+    COMPREPLYPOSSIBLE+=("$(_add_msdk_dirlist)")
+
+    #can't provide via array for some reason, so make it unique in a single variable
+    local GIVEIT=$(echo "${COMPREPLYPOSSIBLE[@]}" | sort -u)
+
+    COMPREPLY+=($(compgen -W "${GIVEIT}" "${COMP_WORDS[${COMP_CWORD}]}"))
+}
+
+complete -F _rmmsdk_completions rmmsdk
+complete -F _rmmsdk_completions rmmsdkz
+complete -F _rmmsdk_completions rmmsdk_containers
+
+# completion utility function
+function _add_base_zfs_clones() {
+    # Get the base datasets, and the dataset holding the base datasets.  Remove the dataset holding the
+    # base datasets and the dataset holding the clones from the list, and strip the dataset holding the
+    # base datasets from all the names.
+    local BASE_CLONE_LIST=()
+    mapfile -t BASE_CLONE_LIST < <(sudo zfs list -r -d 1 ${BASE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "${BASE_CLONE_ZPOOL}" | grep -v "^${BASE_ZPOOL}$" | sed -e "s|${BASE_ZPOOL}/||g")
+
+    echo ${BASE_CLONE_LIST[@]}
+}
+
+# completion utility function
+function _add_base_zfs_clone_snaps() {
+    # Get the base datasets, and the dataset holding the base datasets.  Remove the dataset holding the
+    # base datasets and the dataset holding the clones from the list.
+    local BASE_CLONE_LIST=$(sudo zfs list -r -d 1 ${BASE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "${BASE_CLONE_ZPOOL}" | grep -v "^${BASE_ZPOOL}$")
+
+    local SNAP_LIST=()
+    local SNAP=
+
+    # Get the snapshots for our base clones
+    for D in ${BASE_CLONE_LIST}; do
+        SNAPS=$(sudo zfs list -r ${D} -t snapshot 2>/dev/null | awk '{if(NR>1)print $1}' | sed -e "s|${BASE_ZPOOL}/||g")
+        if [ -n "${SNAPS}" ] ; then
+            for S in ${SNAPS} ; do
+                SNAP_LIST+=("${S}")
+            done
+        fi
+    done
+
+    echo "${SNAP_LIST[@]}"
+}
+
+# completion utility function
+function _add_zfs_clones() {
+    # Get the clone datasets, and the dataset holding the clone datasets.  Remove the dataset holding the
+    # clone datasets from the list, and strip the dataset holding the clone datasets from all the names.
+
+    local CLONE_LIST=()
+    mapfile -t CLONE_LIST < <(sudo zfs list -r -d 1 ${BASE_CLONE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "^${BASE_CLONE_ZPOOL}$" | sed -e "s|${BASE_CLONE_ZPOOL}/||g")
+
+    echo "${CLONE_LIST[@]}"
+}
+
+# completion utility function
+function _add_zfs_clone_snaps() {
+    # Get the clone datasets, and the dataset holding the clone datasets.  Remove the dataset holding the
+    # clone datasets from the list.
+    local CLONE_LIST=$(sudo zfs list -r -d 1 ${BASE_CLONE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "^${BASE_CLONE_ZPOOL}$")
+
+    local SNAP_LIST=()
+    local SNAP=
+    # Get the snapshots for our base clones
+    for D in ${CLONE_LIST}; do
+        SNAPS=$(sudo zfs list -r ${D} -t snapshot 2>/dev/null | awk '{if(NR>1)print $1}' | sed -e "s|${BASE_CLONE_ZPOOL}/||g")
+        if [ -n "${SNAPS}" ] ; then
+            for S in ${SNAPS} ; do
+                SNAP_LIST+=("${S}")
+            done
+        fi
+    done
+
+    echo "${SNAP_LIST[@]}"
+}
+
+# wrapped shell script
+function dupmsdk() {
+    zfs_mk_clone.sh $*
+    return $?
+}
+
+# wrapped shell script
+function mk_zfs_clone() {
+    zfs_mk_clone.sh $*
+    return $?
+}
+
+# Used for completion of mk_zfs_clone, newmsdkz
+function _dupmsdk_completions() {
+    #list of directories under ${MSDK_BASEDIR}, excluding hidden ones
+    if [ ${COMP_CWORD} -eq 1 ] ; then
+
+        local COMPREPLYPOSSIBLE=()
+        COMPREPLYPOSSIBLE+=("$(_add_msdk_dirlist)")
+        COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clones)")
+        COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clone_snaps)")
+        COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
+        COMPREPLYPOSSIBLE+=("$(_add_zfs_clone_snaps)")
+
+        #can't provide via array for some reason, so make it unique in a single variable
+        local GIVEIT=$(echo "${COMPREPLYPOSSIBLE[@]}" | sort -u)
+        COMPREPLY+=($(compgen -W "${GIVEIT}" "${COMP_WORDS[${COMP_CWORD}]}"))
+    else
+        # can't complete new names
+        COMPREPLY=()
+    fi
+}
+
+complete -F _dupmsdk_completions dupmsdk
+complete -F _dupmsdk_completions mk_zfs_clone
+
+# wrapped shell script
+function newmsdkz() {
+    zfs_newmsdk.sh $*
+    return $?
+}
+
+
+# Used for completion of newmsdkz
+function _newmsdkz_completions() {
+    if [ ${COMP_CWORD} -gt 1 ] ; then
+        local PREVIOUS=$(( ${COMP_CWORD} - 1 ))
+        if [[ "${COMP_WORDS[${PREVIOUS}]}" == "-f" ]] || [[ "${COMP_WORDS[${PREVIOUS}]}" == "--from" ]] ; then
+            local COMPREPLYPOSSIBLE=()
+            COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clones)")
+            COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clone_snaps)")
+            COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
+            COMPREPLYPOSSIBLE+=("$(_add_zfs_clone_snaps)")
+
+            #can't provide via array for some reason, so make it unique in a single variable
+            local GIVEIT=$(echo "${COMPREPLYPOSSIBLE[@]}" | sort -u)
+
+            COMPREPLY+=($(compgen -W "${GIVEIT}" "${COMP_WORDS[${COMP_CWORD}]}"))
+        else
+            COMPREPLY=()
+        fi
+    else
+        COMPREPLY=()
+    fi
+}
+
+complete -F _newmsdkz_completions newmsdkz
+
+# wrapped shell script
+function rm_zfs_clone() {
+    zfs_rm_clone.sh $*
+    return $?
+}
+
+# Used for completion of rm_zfs_clone
+function _rm_zfs_clone_completions() {
+    local COMPREPLYPOSSIBLE=()
+    COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
+
+    #can't provide via array for some reason, so make it unique in a single variable
+    local GIVEIT=$(echo "${COMPREPLYPOSSIBLE[@]}" | sort -u)
+    
+    COMPREPLY+=($(compgen -W "${GIVEIT}" "${COMP_WORDS[${COMP_CWORD}]}"))
+}
+
+complete -F _rm_zfs_clone_completions rm_zfs_clone

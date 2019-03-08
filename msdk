@@ -385,7 +385,6 @@ function mk_zfs_clone() {
 
 # Used for completion of mk_zfs_clone, newmsdkz
 function _dupmsdk_completions() {
-    #list of directories under ${MSDK_BASEDIR}, excluding hidden ones
     if [ ${COMP_CWORD} -eq 1 ] ; then
 
         local COMPREPLYPOSSIBLE=()
@@ -457,3 +456,29 @@ function _rm_zfs_clone_completions() {
 }
 
 complete -F _rm_zfs_clone_completions rm_zfs_clone
+
+function msdkz_parent() {
+
+    local REAL_CLONE_NAME=$(sudo zfs list -r ${BASE_CLONE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep "${1}$" | head -n1)
+
+    # gets the "origin" property, which points to the snapshot that it was created from
+    # Have to do this before the possible clone promotion below.
+    local SNAPSHOT_USED=$(sudo zfs get origin ${REAL_CLONE_NAME} 2>/dev/null | awk '{if(NR>1)print $3}' | sed -e "s|${BASE_ZPOOL}/||g")
+    echo "${SNAPSHOT_USED}"
+}
+
+function _msdkz_parent_completions() {
+    if [ ${COMP_CWORD} -eq 1 ] ; then
+        local COMPREPLYPOSSIBLE=()
+        COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
+
+        #can't provide via array for some reason, so make it unique in a single variable
+        local GIVEIT=$(echo "${COMPREPLYPOSSIBLE[@]}" | sort -u)
+        COMPREPLY+=($(compgen -W "${GIVEIT}" "${COMP_WORDS[${COMP_CWORD}]}"))
+    else
+        # can't complete new names
+        COMPREPLY=()
+    fi
+}
+
+complete -F _msdkz_parent_completions msdkz_parent

@@ -153,7 +153,7 @@ do
         # get "no datasets available" rather than a list of matches.  There are no column headings if
         # there are no matches though, so look for whether column headings were produced, which means
         # having at least 2 lines in the result
-        if [ $(sudo zfs list -r ${DATASET_USED} -t snapshot 2>/dev/null | wc -l) -ge 2 ]  ; then
+        if [ $(sudo zfs list -r ${DATASET_USED} -t snapshot 2>/dev/null | wc -l) -lt 2 ]  ; then
             echo "Dataset no longer used, destroying: ${DATASET_USED}"
             sudo zfs destroy ${DATASET_USED} &>/dev/null
         else

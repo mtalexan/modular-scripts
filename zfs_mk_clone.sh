@@ -96,14 +96,15 @@ REAL_DATASET=
 SNAPSHOT_NAME=
 DATASET=
 
-
 # Is the provided dataset a snapshot?
 if echo "${SOURCE_DATASET}" | grep -q "@" ; then
+    echo "Working with snapshot source dataset: ${SOURCE_DATASET}"
     # get just the name of the snapshot
-    SNAPSHOT_NAME=$(echo "${SNAPSHOT}" | sed -e 's/^.*@//g')
+    SNAPSHOT_NAME=$(echo "${SOURCE_DATASET}" | sed -e 's/^.*@//g')
     # Get the dataset for the snapshot
-    DATASET=$(echo "${SNAPSHOT}" | sed -e 's/@.*$//g')
+    DATASET=$(echo "${SOURCE_DATASET}" | sed -e 's/@.*$//g')
 else
+    echo "Working with non-snapshot source dataset: ${SOURCE_DATASET}"
     SNAPSHOT_NAME=
     DATASET=${SOURCE_DATASET}
 fi
@@ -125,8 +126,8 @@ REAL_DATASET=${FULL_DATASET[0]}
 if [ -n "${SNAPSHOT_NAME}" ] ; then
     REAL_SNAPSHOT=${REAL_DATASET}@${SNAPSHOT_NAME}
     # confirm it really exists
-    if ! sudo zfs list -r ${REAL_DATASET} -t snapshot | grep -q "^${REAL_SNAPSHOT}$" 2>/dev/null; then
-        echo "ERROR: Snapshot specified doesn't exist: ${REAL_SNAPSHOT}"
+    if ! sudo zfs list -r ${REAL_DATASET} -t snapshot | awk '{if(NR>1)print $1}' | grep -q "^${REAL_SNAPSHOT}$" 2>/dev/null; then
+        echo "ERROR: Snapshot specified doesn't exist: ${REAL_SNAPSHOT} in ${REAL_DATASET}"
         exit 1
     fi
 else

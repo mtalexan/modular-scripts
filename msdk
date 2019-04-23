@@ -14,7 +14,7 @@ msdk() {
     local FULL_DIR=$(${LOCAL_REPOS_DIR}/msdk.sh $*)
     if [ $? -ne 0 ] ; then
         return 1
-    elif [ -z "${FULL_DIR}" ] ; then
+    elif [ -n "${FULL_DIR}" ] ; then
         cd ${FULL_DIR}
     fi
 }
@@ -85,7 +85,7 @@ smsdk() {
     local FILE=$(${LOCAL_REPOS_DIR}/smsdk.sh $*)
     if [ $? -ne 0 ] ; then
         return 1
-    elif [ -z "${FILE}" ] ; then
+    elif [ -n "${FILE}" ] ; then
         source $FILE
         # move to the new modularSDK
         cd ${MSDK_ROOT_DIR}

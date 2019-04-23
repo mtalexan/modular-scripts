@@ -1,79 +1,31 @@
-MSDK_BASEDIR=${HOME}/msdk_code_repos
-TOP_ZPOOL=phyhomedir/home # this must already exist
+export MSDK_BASEDIR=${HOME}/msdk_code_repos
+export TOP_ZPOOL=phyhomedir/home # this must already exist
 # The pool to create git clones in that we'll create ZFS clones of.
 # Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL
-BASE_ZPOOL=${TOP_ZPOOL}/msdk
+export BASE_ZPOOL=${TOP_ZPOOL}/msdk
 # The pool to create ZFS clones in
 # Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL or BASE_ZPOOL
-BASE_CLONE_ZPOOL=${BASE_ZPOOL}/clones
+export BASE_CLONE_ZPOOL=${BASE_ZPOOL}/clones
 
 
 #because we want this to change the directory of the invoker, we need to source
 #this in the .bashrc and declare it as a shell function
-function msdk() {
-
-    # setup our variables that might be set by arg parsing
-    local SUBDIR=
-    local ERROR_RET=
-    local PERFECT_MATCH=
-    local MATCH_DIRS=()
-
-    while [ ! -z "$1" ] ; do
-        case "$1" in
-            "/")
-                # a "/" indicates an argument follows that's the subdirectory to navigate to if we
-                # change directories
-                SUBDIR=$2
-                shift
-                shift
-                ;;
-            *)
-                # Let the match parsing handle it
-                source ${LOCAL_REPOS_DIR}/get_dir_match.incl
-                ;;
-        esac
-    done
-
-    if [ ! -z "$ERROR_RET" ] ; then
-        if [ $ERROR_RET -eq 2 ] ; then
-            #provided search terms, but nothing matched
-            echo 1>&2 "No matches found"
-            return 2
-        elif [ $ERROR_RET -eq 1 ] ; then
-            #badly formatted arguments
-            echo 1>&2 "Invalid arguments"
-            return 1
-        fi
-    fi
-
-    local FULL_DIR=
-
-    # Construct the full path to the specific directory if we can
-    if [ ${#MATCH_DIRS[@]} -lt 1 ] ; then
-        #found no matches, or had no arguments about matches
-        if [ -z "$MSDK_ROOT_DIR" ] ; then
-            echo 1>&2 'MSDK_ROOT_DIR not set, cannot default to $MSDK_ROOT_DIR'
-            return 1
-        else
-            FULL_DIR=${MSDK_ROOT_DIR}/${SUBDIR}
-        fi
-    elif [ ! -z "$PERFECT_MATCH" ] ; then
-    #only one match for our search terms, or had a perfect match on a non-glob search term
-        FULL_DIR=${MSDK_BASEDIR}/${PERFECT_MATCH}/${SUBDIR}
-    fi
-
-    #have a full path to a specific directory?
-    if [ ! -z "$FULL_DIR" ] ; then
+msdk() {
+    local FULL_DIR=$(${LOCAL_REPOS_DIR}/msdk.sh $*)
+    if [ $? -ne 0 ] ; then
+        return 1
+    elif [ -z "${FULL_DIR}" ] ; then
         cd ${FULL_DIR}
-    else
-        echo 1>&2 "Multiple matches found: "
-        echo 1>&2 "-----------------------"
-        # print each array entry on its own line
-        printf '%s\n' "${MATCH_DIRS[@]}" 1>&2
     fi
 }
 
-function _msdk_completions() {
+_msdk_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
     #list of directories under ${MSDK_BASEDIR}, excluding hidden ones
     if [ ${COMP_CWORD} -eq 1 ] ; then
         if [ -z "${COMP_WORDS[${COMP_CWORD}]}" ] ; then
@@ -83,7 +35,8 @@ function _msdk_completions() {
             COMPREPLY+=(".") # glob search pattern on matches
         fi
 
-        local MSDK_DIRLIST=$(find ${MSDK_BASEDIR} -maxdepth 1 -mindepth 1 \( -type d -o -type l \) | sed -e "s@${MSDK_BASEDIR}/@@g")
+        local MSDK_DIRLIST
+        MSDK_DIRLIST=$(find ${MSDK_BASEDIR} -maxdepth 1 -mindepth 1 \( -type d -o -type l \) | sed -e "s@${MSDK_BASEDIR}/@@g")
         COMPREPLY+=($(compgen -W "${MSDK_DIRLIST} grep glob" "${COMP_WORDS[${COMP_CWORD}]}"))
         # trying to complete the msdk we're looking for
     elif [ ${COMP_CWORD} -eq 2 ] ; then
@@ -128,95 +81,30 @@ function _msdk_completions() {
     fi
 }
 
-function smsdk() {
-    local ERROR_RET=
-    local PERFECT_MATCH=
-    local MATCH_DIRS=()
-    local SCRIPT_DIR=${LOCAL_REPOS_DIR}
-    local SCRIPT_NAME=set_msdk.sh
-
-    if [ -u $1 ] ; then
-        #strip the MSDK_ROOT_DIR down to the directory under $MSDK_BASEDIR only
-        CURRENT_DIR=$(echo $MSDK_ROOT_DIR | sed "s@${MSDK_BASEDIR}/@@g")
-        echo "Current: $CURRENT_DIR"
-        echo "Available: "
-        echo "----------"
-        lmsdk
+smsdk() {
+    local FILE=$(${LOCAL_REPOS_DIR}/smsdk.sh $*)
+    if [ $? -ne 0 ] ; then
         return 1
-    elif [ $1 == "help" ] ; then
-        echo "USAGE: (source|.) $0 [(<string> | (grep|-) <regex> | (glob|.) <glob>)]"
-        echo
-        echo "    Sets the msdk repo instance selected as the one to be used for builds."
-        echo "    If multiple matches are found or no arguments are given, the available"
-        echo "    options will be listed instead."
-        echo
-        return 1
+    elif [ -z "${FILE}" ] ; then
+        source $FILE
+        # move to the new modularSDK
+        cd ${MSDK_ROOT_DIR}
     fi
-
-    source ${LOCAL_REPOS_DIR}/get_dir_match.incl
-
-    if [ ! -z "$ERROR_RET" ] ; then
-        if [ $ERROR_RET -eq 2 ] ; then
-            #provided search terms, but nothing matched
-            echo 1>&2 "No matches found!!"
-            return 2
-        elif [ $ERROR_RET -eq 1 ] ; then
-            #badly formatted arguments
-            echo 1>&2 "Invalid arguments!"
-            return 1
-        fi
-    fi
-
-    # Didn't get a perfect match to a single directory?
-    if [ -z "$PERFECT_MATCH" ] ; then
-        echo 1>&2 "Multiple matches found: "
-        echo 1>&2 "-----------------------"
-        # print each array entry on its own line
-        printf '%s\n' "${MATCH_DIRS[@]}" 1>&2
-        return 1
-    fi
-
-    echo "Setting to ${MSDK_BASEDIR}/${PERFECT_MATCH}"
-
-    # Put the command to correctly setup the selected modularSDK repo path into a separate script
-    # so it can be run from the .bashrc at session start and give a consistent session setup
-
-    echo "export MSDK_ROOT_DIR=${MSDK_BASEDIR}/${PERFECT_MATCH}" > $SCRIPT_DIR/$SCRIPT_NAME
-    chmod +x $SCRIPT_DIR/$SCRIPT_NAME
-    source $SCRIPT_DIR/$SCRIPT_NAME
-
-    # space separated list of sub-directories in $MSDK_ROOT_DIR that need to have all symbolic links
-    #directly contained in them removed when changing modularSDK sandboxes
-    DIRS_TO_CLEAN=
-
-    for dir in $DIRS_TO_CLEAN ; do
-        # make sure the directory exists
-        if [ -e ${MSDK_ROOT_DIR}/${dir} ] ; then
-            LINKS_TO_CHANGE=$(find ${MSDK_ROOT_DIR}/${dir} -maxdepth 1 -type l)
-            # turn it into a space separated list
-            LINKS_TO_CHANGE=$( echo $LINKS_TO_CHANGE )
-            # make sure there were actually results
-            if [[ -n $LINKS_TO_CHANGE ]] ; then
-                # remove all the link files
-                rm $LINKS_TO_CHANGE
-            fi
-        fi
-    done
-
-    # always move to the new modularSDK
-    cd ${MSDK_ROOT_DIR}
 }
 
 # completion utility function
-function _add_msdk_dirlist() {
-    local MSDK_DIRLIST=()
-    mapfile -t MSDK_DIRLIST < <(find ${MSDK_BASEDIR} -maxdepth 1 -mindepth 1 \( -type d -o -type l \) | sed -e "s@${MSDK_BASEDIR}/@@g")
-
-    echo "${MSDK_DIRLIST[@]}"
+_add_msdk_dirlist() {
+    ${LOCAL_REPOS_DIR}/get_msdk_dirlist.sh $*
 }
 
 # shared by lmsdk and smsdk
-function _smsdk_completions() {
+_smsdk_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
     #list of directories under ${MSDK_BASEDIR}, excluding hidden ones
     if [ ${COMP_CWORD} -eq 1 ] ; then
         if [ -z "${COMP_WORDS[${COMP_CWORD}]}" ] ; then
@@ -225,7 +113,8 @@ function _smsdk_completions() {
             COMPREPLY+=(".") # glob search pattern on matches
         fi
 
-        local COMPREPLYPOSSIBLE=()
+        local COMPREPLYPOSSIBLE
+        typeset -a COMPREPLYPOSSIBLE
         COMPREPLYPOSSIBLE+=("$(_add_msdk_dirlist)")
         COMPREPLY+=($(compgen -W "${COMPREPLYPOSSIBLE[@]} grep glob" "${COMP_WORDS[${COMP_CWORD}]}"))
     else
@@ -235,43 +124,9 @@ function _smsdk_completions() {
 }
 
 # runs in subshell with parentheses instead of curlys
-function lmsdk() (
-    shopt -s nullglob
-    shopt -s nocasematch
-
-    if [ -u $1 ] ; then
-        ls -1 ${MSDK_BASEDIR}
-        return 0
-    elif [ $1 == "help" ] ; then
-        echo "USAGE: $0 [(<string> | (grep|-) <regex> | (glob|.) <glob>)]"
-        echo
-        echo "    Lists the possible options for modular repo instances that can be selected"
-        echo
-        return 1
-    fi
-
-    # move to and attempt to match the string as a search in the code directory
-    pushd $MSDK_BASEDIR &>/dev/null
-
-    local MATCH_MSDK=()
-    # determine whether argument 1 was just a case sensitive string we want to find,
-    # or whether it was specifying whether we want to use argument 2 as a glob or
-    # grep search
-    case "$1" in
-        "grep" | "-" )
-            MATCH_MSDK=$(ls -d -1 * | grep -e "$2") ;;
-        "glob" | "." )
-            MATCH_MSDK=$(ls -d ${2})  ;;
-        *)
-            MATCH_MSDK=$(ls -d *${1}*)
-    esac
-
-    # one per line
-    printf '%s\n' "${MATCH_MSDK[@]}"
-
-    # return to the original directory now that we're done in the different directory
-    popd &>/dev/null
-)
+lmsdk() {
+    ${LOCAL_REPOS_DIR}/lmsdk.sh $*
+}
 
 complete -F _msdk_completions msdk
 complete -F _smsdk_completions smsdk
@@ -280,20 +135,27 @@ complete -F _smsdk_completions lmsdk
 #function rmmsdk() -- defined as stand-alone script
 
 # wrapped shell script
-function rmmsdkz() {
+rmmsdkz() {
     zfs_rmmsdk.sh $*
     return $?
 }
 
 # wrapped shell script
-function rmmsdk_containers() {
+rmmsdk_containers() {
     containers_rmmsdk.sh $*
     return $?
 }
 
 # Used for completion of rmmsdk, rmmsdkz, rmmsdk_containers
-function _rmmsdk_completions() {
-    local COMPREPLYPOSSIBLE=()
+_rmmsdk_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
+    local COMPREPLYPOSSIBLE
+    typeset -a COMPREPLYPOSSIBLE
     COMPREPLYPOSSIBLE+=("$(_add_msdk_dirlist)")
 
     #can't provide via array for some reason, so make it unique in a single variable
@@ -307,87 +169,50 @@ complete -F _rmmsdk_completions rmmsdkz
 complete -F _rmmsdk_completions rmmsdk_containers
 
 # completion utility function
-function _add_base_zfs_clones() {
-    # Get the base datasets, and the dataset holding the base datasets.  Remove the dataset holding the
-    # base datasets and the dataset holding the clones from the list, and strip the dataset holding the
-    # base datasets from all the names.
-    local BASE_CLONE_LIST=()
-    mapfile -t BASE_CLONE_LIST < <(sudo zfs list -r -d 1 ${BASE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "${BASE_CLONE_ZPOOL}" | grep -v "^${BASE_ZPOOL}$" | sed -e "s|${BASE_ZPOOL}/||g")
+_add_base_zfs_clones() {
+    ${LOCAL_REPOS_DIR}/get_base_zfs_clones.sh $*
+}
 
-    echo ${BASE_CLONE_LIST[@]}
+
+# completion utility function
+_add_base_zfs_clone_snaps() {
+    ${LOCAL_REPOS_DIR}/get_base_zfs_clone_snaps.sh $*
 }
 
 # completion utility function
-function _add_base_zfs_clone_snaps() {
-    # Get the base datasets, and the dataset holding the base datasets.  Remove the dataset holding the
-    # base datasets and the dataset holding the clones from the list.
-    local BASE_CLONE_LIST=$(sudo zfs list -r -d 1 ${BASE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "${BASE_CLONE_ZPOOL}" | grep -v "^${BASE_ZPOOL}$")
-
-    local SNAP_LIST=()
-    local SNAP=
-
-    # Get the snapshots for our base clones
-    for D in ${BASE_CLONE_LIST}; do
-        SNAPS=$(sudo zfs list -r ${D} -t snapshot 2>/dev/null | awk '{if(NR>1)print $1}' | sed -e "s|${BASE_ZPOOL}/||g")
-        if [ -n "${SNAPS}" ] ; then
-            for S in ${SNAPS} ; do
-                SNAP_LIST+=("${S}")
-            done
-        fi
-    done
-
-    echo "${SNAP_LIST[@]}"
+_add_zfs_clones() {
+    ${LOCAL_REPOS_DIR}/get_zfs_clones.sh $*
 }
 
 # completion utility function
-function _add_zfs_clones() {
-    # Get the clone datasets, and the dataset holding the clone datasets.  Remove the dataset holding the
-    # clone datasets from the list, and strip the dataset holding the clone datasets from all the names.
-
-    local CLONE_LIST=()
-    mapfile -t CLONE_LIST < <(sudo zfs list -r -d 1 ${BASE_CLONE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "^${BASE_CLONE_ZPOOL}$" | sed -e "s|${BASE_CLONE_ZPOOL}/||g")
-
-    echo "${CLONE_LIST[@]}"
-}
-
-# completion utility function
-function _add_zfs_clone_snaps() {
-    # Get the clone datasets, and the dataset holding the clone datasets.  Remove the dataset holding the
-    # clone datasets from the list.
-    local CLONE_LIST=$(sudo zfs list -r -d 1 ${BASE_CLONE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep -v "^${BASE_CLONE_ZPOOL}$")
-
-    local SNAP_LIST=()
-    local SNAP=
-    # Get the snapshots for our base clones
-    for D in ${CLONE_LIST}; do
-        SNAPS=$(sudo zfs list -r ${D} -t snapshot 2>/dev/null | awk '{if(NR>1)print $1}' | sed -e "s|${BASE_CLONE_ZPOOL}/||g")
-        if [ -n "${SNAPS}" ] ; then
-            for S in ${SNAPS} ; do
-                SNAP_LIST+=("${S}")
-            done
-        fi
-    done
-
-    echo "${SNAP_LIST[@]}"
+_add_zfs_clone_snaps() {
+    ${LOCAL_REPOS_DIR}/get_zfs_clone_snaps.sh $*
 }
 
 # wrapped shell script
-function dupmsdk() {
+dupmsdk() {
     zfs_mk_clone.sh $*
     return $?
 }
 
 # wrapped shell script
-function mk_zfs_clone() {
+mk_zfs_clone() {
     zfs_mk_clone.sh $*
     return $?
 }
 
 # Used for completion of mk_zfs_clone, newmsdkz
-function _dupmsdk_completions() {
+_dupmsdk_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
     if [ ${COMP_CWORD} -eq 1 ] ; then
 
-        local COMPREPLYPOSSIBLE=()
+        local COMPREPLYPOSSIBLE
+        typeset -a COMPREPLYPOSSIBLE
         COMPREPLYPOSSIBLE+=("$(_add_msdk_dirlist)")
         COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clones)")
         COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clone_snaps)")
@@ -407,18 +232,25 @@ complete -F _dupmsdk_completions dupmsdk
 complete -F _dupmsdk_completions mk_zfs_clone
 
 # wrapped shell script
-function newmsdkz() {
+newmsdkz() {
     zfs_newmsdk.sh $*
     return $?
 }
 
 
 # Used for completion of newmsdkz
-function _newmsdkz_completions() {
+_newmsdkz_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
     if [ ${COMP_CWORD} -gt 1 ] ; then
         local PREVIOUS=$(( ${COMP_CWORD} - 1 ))
         if [[ "${COMP_WORDS[${PREVIOUS}]}" == "-f" ]] || [[ "${COMP_WORDS[${PREVIOUS}]}" == "--from" ]] ; then
-            local COMPREPLYPOSSIBLE=()
+            local COMPREPLYPOSSIBLE
+            typeset -a COMPREPLYPOSSIBLE
             COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clones)")
             COMPREPLYPOSSIBLE+=("$(_add_base_zfs_clone_snaps)")
             COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
@@ -439,14 +271,21 @@ function _newmsdkz_completions() {
 complete -F _newmsdkz_completions newmsdkz
 
 # wrapped shell script
-function rm_zfs_clone() {
+rm_zfs_clone() {
     zfs_rm_clone.sh $*
     return $?
 }
 
 # Used for completion of rm_zfs_clone
-function _rm_zfs_clone_completions() {
-    local COMPREPLYPOSSIBLE=()
+_rm_zfs_clone_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
+    local COMPREPLYPOSSIBLE
+    typeset -a COMPREPLYPOSSIBLE
     COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
 
     #can't provide via array for some reason, so make it unique in a single variable
@@ -457,19 +296,20 @@ function _rm_zfs_clone_completions() {
 
 complete -F _rm_zfs_clone_completions rm_zfs_clone
 
-function msdkz_parent() {
-
-    local REAL_CLONE_NAME=$(sudo zfs list -r ${BASE_CLONE_ZPOOL} 2>/dev/null | awk '{if(NR>1)print $1}' | grep "${1}$" | head -n1)
-
-    # gets the "origin" property, which points to the snapshot that it was created from
-    # Have to do this before the possible clone promotion below.
-    local SNAPSHOT_USED=$(sudo zfs get origin ${REAL_CLONE_NAME} 2>/dev/null | awk '{if(NR>1)print $3}' | sed -e "s|${BASE_ZPOOL}/||g")
-    echo "${SNAPSHOT_USED}"
+msdkz_parent() {
+    ${LOCAL_REPOS_DIR}/get_msdkz_parent.sh $*
 }
 
-function _msdkz_parent_completions() {
+_msdkz_parent_completions() {
+    if [ -n "${ZSH_NAME}" ] ; then
+        # for ZSH emulate ksh mode for this function locally to make it easier to re-use between bash & zsh
+        # Specifically array indexing
+        emulate -L ksh
+    fi
+
     if [ ${COMP_CWORD} -eq 1 ] ; then
-        local COMPREPLYPOSSIBLE=()
+        local COMPREPLYPOSSIBLE
+        typeset -a COMPREPLYPOSSIBLE
         COMPREPLYPOSSIBLE+=("$(_add_zfs_clones)")
 
         #can't provide via array for some reason, so make it unique in a single variable

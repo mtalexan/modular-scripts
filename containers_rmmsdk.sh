@@ -86,7 +86,7 @@ find_container_names()
 
     if [ ${#NAME_FILES[@]} -gt 0 ] ; then
         for N in ${NAME_FILES[@]} ; do
-            CONTAINERS+=($(cat ${N}))
+            CONTAINERS+=($(cat ${N} | tr -d '[[:space:]]'))
         done
     fi
 
@@ -131,11 +131,21 @@ do
     echo -e "${CMagentaForeground}${CBold}""Removing containers for clone in ${MSDK_BASEDIR}/${N}""${CNone}"
 
     if [ -d $N ] ; then
-        find_container_names ${MSDK_BASEDIR}/${N}
-        if [ ${#CONTAINERS[@]} -gt 0 ] ; then
-            remove_containers ${CONTAINERS[@]}
+        # look for the rm-container scripts in DEVDIRs other than sdk/origin
+        CLEANUPS=$(find ${MSDK_BASEDIR}/${N}/sdk/ -maxdepth 2 -not -path "*/origin/*" -name "rm-container")
+        if [ -n "${CLEANUPS}" ] ; then
+            # run them all 
+            for F in ${CLEANUPS} ; do
+                $F
+            done
         else
-            echo "No containers to clean up"
+            # no automatic cleanups found, try to do it ourself
+            find_container_names ${MSDK_BASEDIR}/${N}
+            if [ ${#CONTAINERS[@]} -gt 0 ] ; then
+                remove_containers ${CONTAINERS[@]}
+            else
+                echo "No containers to clean up"
+            fi
         fi
     else
         echo "ERROR: ${MSDK_BASEDIR}/${N} doesn't exist"

@@ -130,7 +130,7 @@ for N in ${NAMES[@]}
 do
     echo -e "${CMagentaForeground}${CBold}""Removing containers for clone in ${MSDK_BASEDIR}/${N}""${CNone}"
 
-    if [ -d $N ] ; then
+    if [ -d ${MSDK_BASEDIR}/${N} ] ; then
         # look for the rm-container scripts in DEVDIRs other than sdk/origin
         CLEANUPS=$(find ${MSDK_BASEDIR}/${N}/sdk/ -maxdepth 2 -not -path "*/origin/*" -name "rm-container")
         if [ -n "${CLEANUPS}" ] ; then

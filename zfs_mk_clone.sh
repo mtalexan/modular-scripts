@@ -184,7 +184,7 @@ do
     CLONE_DIR_TO_CLEANUP_ON_FAILURE=${MSDK_BASEDIR}/${N}
     CLONE_TO_CLEANUP_ON_FAILURE=${BASE_CLONE_ZPOOL}/${N}
 
-    if ! sudo zfs clone -o mountpoint=${CLONE_DIR_TO_CLEANUP_ON_FAILURE} -o canmount=on -o readonly=off ${REAL_SNAPSHOT} ${CLONE_TO_CLEANUP_ON_FAILURE} &>/dev/null ; then
+    if ! sudo zfs clone -o mountpoint=${CLONE_DIR_TO_CLEANUP_ON_FAILURE} -o canmount=on -o readonly=off -o sharenfs=on ${REAL_SNAPSHOT} ${CLONE_TO_CLEANUP_ON_FAILURE} &>/dev/null ; then
         echo "ERROR: Could not create ${N}"
         exit 1
     else

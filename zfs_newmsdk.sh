@@ -2,7 +2,7 @@
 
 MSDK_BASEDIR=${HOME}/msdk_code_repos
 REPO_URL=git@scm-02.karlstorz.com:VPD-SW/Dev/modularSDK.git
-TOP_ZPOOL=phyhomedir/home # this must already exist
+TOP_ZPOOL=${TOP_ZPOOL:-phyhomedir/home} # this must already exist
 # The pool to create git clones in that we'll create ZFS clones of.
 # Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL
 BASE_ZPOOL=${TOP_ZPOOL}/msdk

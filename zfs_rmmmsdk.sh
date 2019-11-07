@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MSDK_BASEDIR=${HOME}/msdk_code_repos
-TOP_ZPOOL=phyhomedir/home # this must already exist
+TOP_ZPOOL=${TOP_ZPOOL:-phyhomedir/home} # this must already exist
 # The pool base datasets are created in
 BASE_ZPOOL=${TOP_ZPOOL}/msdk
 # The pool ZFS clones are created in

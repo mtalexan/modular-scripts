@@ -1,5 +1,5 @@
 export MSDK_BASEDIR=${HOME}/msdk_code_repos
-export TOP_ZPOOL=phyhomedir/home # this must already exist
+export TOP_ZPOOL=${TOP_ZPOOL:-phyhomedir/home} # this must already exist
 # The pool to create git clones in that we'll create ZFS clones of.
 # Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL
 export BASE_ZPOOL=${TOP_ZPOOL}/msdk

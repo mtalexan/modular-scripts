@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MSDK_BASEDIR=${HOME}/msdk_code_repos
-TOP_ZPOOL=phyhomedir/home # this must already exist
+TOP_ZPOOL=${TOP_ZPOOL:-phyhomedir/home} # this must already exist
 # The pool to create git clones in that we'll create ZFS clones of.
 # Will be auto-created as long as it's only 1 level deep from TOP_ZPOOL
 BASE_ZPOOL=${TOP_ZPOOL}/msdk
@@ -155,6 +155,13 @@ fi
 # We can now assume we have a snapshot to clone as many times as needed
 
 
+# Check if we have nfs-kernel-server package installed, otherwise we'll get an error using "-o sharenfs=on" as a zfs option
+DEFAULT_SHAREDNFS=
+if dpkg -l nfs-kernel-server | grep -q '^.i.*' ; then
+    echo "Detected NFS is available, enabling sharing in all clones"
+    DEFAULT_SHAREDNFS="-o sharenfs=on"
+fi
+
 CLONE_TO_CLEANUP_ON_FAILURE=
 CLONE_DIR_TO_CLEANUP_ON_FAILURE=
 cleanup_failed_zfs_clone()
@@ -184,7 +191,7 @@ do
     CLONE_DIR_TO_CLEANUP_ON_FAILURE=${MSDK_BASEDIR}/${N}
     CLONE_TO_CLEANUP_ON_FAILURE=${BASE_CLONE_ZPOOL}/${N}
 
-    if ! sudo zfs clone -o mountpoint=${CLONE_DIR_TO_CLEANUP_ON_FAILURE} -o canmount=on -o readonly=off -o sharenfs=on ${REAL_SNAPSHOT} ${CLONE_TO_CLEANUP_ON_FAILURE} &>/dev/null ; then
+    if ! sudo zfs clone -o mountpoint=${CLONE_DIR_TO_CLEANUP_ON_FAILURE} -o canmount=on -o readonly=off ${DEFAULT_SHAREDNFS} ${REAL_SNAPSHOT} ${CLONE_TO_CLEANUP_ON_FAILURE} ; then
         echo "ERROR: Could not create ${N}"
         exit 1
     else

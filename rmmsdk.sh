@@ -70,7 +70,7 @@ for N in ${NAMES[@]}
 do
     echo -e "${CMagentaForeground}${CBold}""Removing clone in ${MSDK_BASEDIR}/${N}""${CNone}"
 
-    if [ -d $N ] ; then
+    if [ -d "${MSDK_BASEDIR}/$N" ] ; then
         containers_rmmsdk.sh ${N}
         sudo rm -rf ${MSDK_BASEDIR}/${N}
     else

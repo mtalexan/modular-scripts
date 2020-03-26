@@ -1,7 +1,9 @@
 #!/bin/bash
 
 MSDK_BASEDIR=${HOME}/msdk_code_repos
-REPO_URL=git@scm-02.karlstorz.com:VPD-SW/Dev/modularSDK.git
+REPO_SSH_URL=git@scm-02.karlstorz.com:VPD-SW/Dev/modularSDK.git
+REPO_HTTPS_URL=https://scm-02.karlstorz.com/VPD-SW/Dev/modularSDK.git
+REPO_URL=${REPO_SSH_URL}
 
 CMagentaForeground="\\033[35m"
 CBold="\\033[1m"
@@ -41,6 +43,9 @@ print_usage()
     echo "   Repeats of this option overwrite previous instances working left to right."
     echo "   WARNING: The inherit logic relies on properly configured .gitexternals files in all the repos"
     echo "            that list \${INHERIT} as the first branch option."
+    echo "  --ssh"
+    echo "  --https"
+    echo "   Perform the clone using the indicated syntax.  The default is SSH."
     echo ""
     echo "  name-of-clone"
     echo "   Name to create the clone under.  Standard syntax for git-fast-clone on this argument applies."
@@ -49,7 +54,7 @@ print_usage()
     echo ""
 }
 
-OPTS=$(getopt -n "$(basename $0)" --options hb:i: --longoptions help,branch:,inherit: -- "$@")
+OPTS=$(getopt -n "$(basename $0)" --options hb:i: --longoptions help,ssh,https,branch:,inherit: -- "$@")
 if [ $? -ne 0 ]
 then
     echo "ERROR: Unable to parse arguments"
@@ -78,6 +83,14 @@ do
         --branch | --inherit )
             PASSTHRU_ARGS+=("$1=$2")
             shift 2
+            ;;
+        --ssh )
+            REPO_URL=${REPO_SSH_URL}
+            shift
+            ;;
+        --https )
+            REPO_URL=${REPO_HTTPS_URL}
+            shift
             ;;
         -- )
             FREE_ARGS=true
